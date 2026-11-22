@@ -1,0 +1,10 @@
+[project]
+name = "operating-agents-lab"
+version = "1.0.0"
+description = "Lab 9 of the AI Engineering series: OpenTelemetry traces and metrics with GenAI conventions, retries, circuit breaking, fallbacks and budgets, SLO burn-rate alerts, scheduled agents, runbooks and a game day."
+requires-python = ">=3.11"
+license = "MIT"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

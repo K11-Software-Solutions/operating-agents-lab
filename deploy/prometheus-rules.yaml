@@ -1,0 +1,91 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kestrel-agents-slos
+  labels:
+    app.kubernetes.io/name: kestrel-agents
+spec:
+  groups:
+  - name: kestrel-agents-slos
+    rules:
+    - alert: KestrelAvailabilityBurnPage
+      expr: (sum(rate(kestrel_agent_requests_total{kestrel_outcome="error"}[60m])) / sum(rate(kestrel_agent_requests_total[60m]))) > (14.4 * 0.005) and (sum(rate(kestrel_agent_requests_total{kestrel_outcome="error"}[5m]))
+        / sum(rate(kestrel_agent_requests_total[5m]))) > (14.4 * 0.005)
+      labels:
+        severity: page
+        slo: availability
+      annotations:
+        summary: availability SLO (the caller got an answer) burning 14.4x over 60m and 5m
+        runbook_url: runbooks/provider-outage.md
+    - alert: KestrelAvailabilityBurnTicket
+      expr: (sum(rate(kestrel_agent_requests_total{kestrel_outcome="error"}[360m])) / sum(rate(kestrel_agent_requests_total[360m]))) > (6.0 * 0.005) and (sum(rate(kestrel_agent_requests_total{kestrel_outcome="error"}[30m]))
+        / sum(rate(kestrel_agent_requests_total[30m]))) > (6.0 * 0.005)
+      labels:
+        severity: ticket
+        slo: availability
+      annotations:
+        summary: availability SLO (the caller got an answer) burning 6.0x over 360m and 30m
+        runbook_url: runbooks/provider-outage.md
+    - alert: KestrelFullQualityBurnPage
+      expr: (sum(rate(kestrel_agent_requests_total{kestrel_outcome=~"degraded|error"}[60m])) / sum(rate(kestrel_agent_requests_total[60m]))) > (14.4 * 0.01) and (sum(rate(kestrel_agent_requests_total{kestrel_outcome=~"degraded|error"}[5m]))
+        / sum(rate(kestrel_agent_requests_total[5m]))) > (14.4 * 0.01)
+      labels:
+        severity: page
+        slo: full_quality
+      annotations:
+        summary: full_quality SLO (answered by a model, not the degraded baseline) burning 14.4x over 60m and 5m
+        runbook_url: runbooks/provider-outage.md
+    - alert: KestrelFullQualityBurnTicket
+      expr: (sum(rate(kestrel_agent_requests_total{kestrel_outcome=~"degraded|error"}[360m])) / sum(rate(kestrel_agent_requests_total[360m]))) > (6.0 * 0.01) and (sum(rate(kestrel_agent_requests_total{kestrel_outcome=~"degraded|error"}[30m]))
+        / sum(rate(kestrel_agent_requests_total[30m]))) > (6.0 * 0.01)
+      labels:
+        severity: ticket
+        slo: full_quality
+      annotations:
+        summary: full_quality SLO (answered by a model, not the degraded baseline) burning 6.0x over 360m and 30m
+        runbook_url: runbooks/provider-outage.md
+    - alert: KestrelLatencyBurnPage
+      expr: (sum(rate(kestrel_agent_request_duration_seconds_count - ignoring(le) kestrel_agent_request_duration_seconds_bucket{le="10.0"}[60m])) / sum(rate(kestrel_agent_requests_total[60m]))) > (14.4
+        * 0.05) and (sum(rate(kestrel_agent_request_duration_seconds_count - ignoring(le) kestrel_agent_request_duration_seconds_bucket{le="10.0"}[5m])) / sum(rate(kestrel_agent_requests_total[5m]))) >
+        (14.4 * 0.05)
+      labels:
+        severity: page
+        slo: latency
+      annotations:
+        summary: latency SLO (answered within 10 s) burning 14.4x over 60m and 5m
+        runbook_url: runbooks/cost-or-latency.md
+    - alert: KestrelLatencyBurnTicket
+      expr: (sum(rate(kestrel_agent_request_duration_seconds_count - ignoring(le) kestrel_agent_request_duration_seconds_bucket{le="10.0"}[360m])) / sum(rate(kestrel_agent_requests_total[360m]))) > (6.0
+        * 0.05) and (sum(rate(kestrel_agent_request_duration_seconds_count - ignoring(le) kestrel_agent_request_duration_seconds_bucket{le="10.0"}[30m])) / sum(rate(kestrel_agent_requests_total[30m])))
+        > (6.0 * 0.05)
+      labels:
+        severity: ticket
+        slo: latency
+      annotations:
+        summary: latency SLO (answered within 10 s) burning 6.0x over 360m and 30m
+        runbook_url: runbooks/cost-or-latency.md
+    - alert: KestrelCostBurnPage
+      expr: (sum(rate(kestrel_agent_expensive_requests_total[60m])) / sum(rate(kestrel_agent_requests_total[60m]))) > (14.4 * 0.01) and (sum(rate(kestrel_agent_expensive_requests_total[5m])) / sum(rate(kestrel_agent_requests_total[5m])))
+        > (14.4 * 0.01)
+      labels:
+        severity: page
+        slo: cost
+      annotations:
+        summary: cost SLO (at most $0.05 per request) burning 14.4x over 60m and 5m
+        runbook_url: runbooks/cost-or-latency.md
+    - alert: KestrelCostBurnTicket
+      expr: (sum(rate(kestrel_agent_expensive_requests_total[360m])) / sum(rate(kestrel_agent_requests_total[360m]))) > (6.0 * 0.01) and (sum(rate(kestrel_agent_expensive_requests_total[30m])) / sum(rate(kestrel_agent_requests_total[30m])))
+        > (6.0 * 0.01)
+      labels:
+        severity: ticket
+        slo: cost
+      annotations:
+        summary: cost SLO (at most $0.05 per request) burning 6.0x over 360m and 30m
+        runbook_url: runbooks/cost-or-latency.md
+    - alert: KestrelSpendSpike
+      expr: sum(increase(kestrel_agent_cost_usd_total[1h])) > 3 * (sum(increase(kestrel_agent_cost_usd_total[24h] offset 1h)) / 24)
+      labels:
+        severity: page
+      annotations:
+        summary: spend in the last hour is over 3x the recent hourly average
+        runbook_url: runbooks/cost-spike.md

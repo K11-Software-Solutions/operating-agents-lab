@@ -1,0 +1,80 @@
+# Scheduled agents. Safe to retry: run_job is idempotent per run key and refuses overlapping runs.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kestrel-eval-drift
+spec:
+  schedule: "15 3 * * *"              # 03:15 UTC daily
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid           # never two at once (the lock file is a second line of defence)
+  startingDeadlineSeconds: 3600       # if the scheduler was down, still run within the hour
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1200     # Kubernetes kills it after 20 min; the job itself stops at 15
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: kestrel-agents
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: eval-drift
+              image: kestrel-ops:1.0.0   # replace with your immutable ECR tag
+              args: ["python", "-m", "opsagents.scheduled", "eval-drift", "--state", "/state",
+                     "--max-runtime", "900", "--budget-usd", "1.0"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {memory: 256Mi}
+              volumeMounts:
+                - {name: state, mountPath: /state}
+          volumes:
+            - name: state
+              persistentVolumeClaim:
+                claimName: kestrel-ops-state
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kestrel-backlog-hygiene
+spec:
+  schedule: "0 4 * * 1-5"             # 04:00 UTC on weekdays
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: backlog-hygiene
+              image: kestrel-ops:1.0.0   # replace with your immutable ECR tag
+              args: ["python", "-m", "opsagents.scheduled", "backlog-hygiene", "--state", "/state", "--max-runtime", "300"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {memory: 128Mi}
+              volumeMounts:
+                - {name: state, mountPath: /state}
+          volumes:
+            - name: state
+              persistentVolumeClaim:
+                claimName: kestrel-ops-state

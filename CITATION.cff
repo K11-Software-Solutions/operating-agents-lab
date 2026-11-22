@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software or its articles, please cite it as below."
+type: software
+title: "Operating Agents Lab"
+abstract: "Lab 9 of an AI Engineering curriculum: an LLM agent instrumented with OpenTelemetry traces and metrics using the GenAI semantic conventions; retries with jitter and Retry-After, a circuit breaker, a fallback model and a labelled degraded mode; per-request and per-tenant budgets; multi-window burn-rate SLO alerts and spend alerts, rendered as Prometheus rules from the same definitions; idempotent, locked, deadline-bound scheduled agents; runbooks; and a simulated-clock game day that checks exactly which alerts fire under injected faults."
+authors:
+  - family-names: Jadhav
+    given-names: Kavita
+    affiliation: K11 Software Solutions
+repository-code: "https://github.com/K11-Software-Solutions/operating-agents-lab"
+url: "https://github.com/K11-Software-Solutions/operating-agents-lab"
+version: "1.0.0"
+license:
+  - MIT
+  - CC-BY-4.0
+keywords:
+  - ai-engineering
+  - opentelemetry
+  - observability
+  - slo
+  - resilience
+  - circuit-breaker
+  - llm-ops
+  - chaos-engineering
+# After the first Zenodo release, add the concept DOI:
+# identifiers:
+#   - type: doi
+#     value: "10.5281/zenodo.XXXXXXX"
+#     description: Concept DOI (all versions)
